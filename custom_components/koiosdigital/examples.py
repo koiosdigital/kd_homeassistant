@@ -20,7 +20,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 255, 0, 0],  # Yellow for day
                                     "effect": "solid",
@@ -36,7 +36,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 100, 0, 0],  # Orange for evening
                                     "effect": "breathe",
@@ -66,7 +66,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "number.set_value",
-                                "target": {"entity_id": "number.koios_clock_led_brightness"},
+                                "target": {"entity_id": "number.koiosdigital_led_brightness"},
                                 "data": {"value": 50},
                             }
                         ],
@@ -78,7 +78,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "number.set_value",
-                                "target": {"entity_id": "number.koios_clock_led_brightness"},
+                                "target": {"entity_id": "number.koiosdigital_led_brightness"},
                                 "data": {"value": 200},
                             }
                         ],
@@ -96,7 +96,7 @@ EXAMPLE_AUTOMATIONS = [
         "action": [
             {
                 "service": "select.select_next",
-                "target": {"entity_id": "select.koios_clock_fibonacci_theme"},
+                "target": {"entity_id": "select.koiosdigital_fibonacci_theme"},
             }
         ],
         "condition": [
@@ -120,7 +120,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 0, 0, 0],  # Red for Christmas
                                     "effect": "blink",
@@ -135,7 +135,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 165, 0, 0],  # Orange for Halloween
                                     "effect": "cyclic",
@@ -163,7 +163,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 255, 0, 0],  # Yellow for sunny
                                     "effect": "solid",
@@ -178,7 +178,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [0, 100, 255, 0],  # Blue for rainy
                                     "effect": "breathe",
@@ -193,7 +193,7 @@ EXAMPLE_AUTOMATIONS = [
                         "sequence": [
                             {
                                 "service": "light.turn_on",
-                                "target": {"entity_id": "light.koios_clock_backlight"},
+                                "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [128, 128, 128, 50],  # Gray for cloudy
                                     "effect": "solid",

@@ -41,7 +41,7 @@ This is a comprehensive Home Assistant custom integration for Koios Digital Cloc
 ## Installation
 
 1. Copy the `hass` folder to your Home Assistant `custom_components` directory
-2. Rename the folder from `hass` to `koios_clock`
+2. Rename the folder from `hass` to `koiosdigital`
 3. Restart Home Assistant
 4. Go to Configuration → Integrations → Add Integration
 5. Search for "Koios Digital Clock"
@@ -77,25 +77,25 @@ The integration communicates with the device using these REST API endpoints:
 
 #### All Devices
 
-- `light.koios_clock_backlight` - Backlight LED control
+- `light.koiosdigital_backlight` - Backlight LED control
 
 #### Fibonacci Clock Additional Entities
 
-- `light.koios_clock_theme` - Theme and brightness control
-- `select.koios_clock_fibonacci_theme` - Theme selection
-- `number.koios_clock_fibonacci_brightness` - Brightness slider
+- `light.koiosdigital_theme` - Theme and brightness control
+- `select.koiosdigital_fibonacci_theme` - Theme selection
+- `number.koiosdigital_fibonacci_brightness` - Brightness slider
 
 #### Nixie Clock Additional Entities
 
-- `light.koios_clock_nixie_tubes` - Tube brightness control
-- `switch.koios_clock_military_time` - 24-hour format toggle
-- `switch.koios_clock_blinking_dots` - Blinking separator dots
-- `number.koios_clock_nixie_brightness` - Nixie brightness slider
+- `light.koiosdigital_nixie_tubes` - Tube brightness control
+- `switch.koiosdigital_military_time` - 24-hour format toggle
+- `switch.koiosdigital_blinking_dots` - Blinking separator dots
+- `number.koiosdigital_nixie_brightness` - Nixie brightness slider
 
 #### Common Entities (All Devices)
 
-- `select.koios_clock_led_effect` - LED effect selection
-- `number.koios_clock_led_brightness` - LED brightness control
+- `select.koiosdigital_led_effect` - LED effect selection
+- `number.koiosdigital_led_brightness` - LED brightness control
 
 ## Supported LED Effects
 

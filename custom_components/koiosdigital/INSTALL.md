@@ -17,12 +17,12 @@
    cd /config/custom_components/
 
    # Create the integration directory
-   mkdir koios_clock
+   mkdir koiosdigital
    ```
 
 2. **Copy Integration Files**
 
-   - Copy all files from the `hass` folder to `/config/custom_components/koios_clock/`
+   - Copy all files from the `hass` folder to `/config/custom_components/koiosdigital/`
    - Ensure the following files are present:
      - `__init__.py`
      - `manifest.json`
@@ -100,22 +100,22 @@ Check that the following entities are created based on your device model:
 
 **All Devices:**
 
-- `light.koios_clock_backlight`
-- `select.koios_clock_led_effect`
-- `number.koios_clock_led_brightness`
+- `light.koiosdigital_backlight`
+- `select.koiosdigital_led_effect`
+- `number.koiosdigital_led_brightness`
 
 **Fibonacci Clock:**
 
-- `light.koios_clock_theme`
-- `select.koios_clock_fibonacci_theme`
-- `number.koios_clock_fibonacci_brightness`
+- `light.koiosdigital_theme`
+- `select.koiosdigital_fibonacci_theme`
+- `number.koiosdigital_fibonacci_brightness`
 
 **Nixie Clock:**
 
-- `light.koios_clock_nixie_tubes`
-- `switch.koios_clock_military_time`
-- `switch.koios_clock_blinking_dots`
-- `number.koios_clock_nixie_brightness`
+- `light.koiosdigital_nixie_tubes`
+- `switch.koiosdigital_military_time`
+- `switch.koiosdigital_blinking_dots`
+- `number.koiosdigital_nixie_brightness`
 
 ### 2. Test Basic Functions
 
@@ -124,7 +124,7 @@ Check that the following entities are created based on your device model:
    ```yaml
    service: light.turn_on
    target:
-     entity_id: light.koios_clock_backlight
+     entity_id: light.koiosdigital_backlight
    data:
      brightness: 200
      rgbw_color: [255, 0, 0, 0]
@@ -135,7 +135,7 @@ Check that the following entities are created based on your device model:
    ```yaml
    service: select.select_option
    target:
-     entity_id: select.koios_clock_led_effect
+     entity_id: select.koiosdigital_led_effect
    data:
      option: "Rainbow"
    ```
@@ -182,7 +182,7 @@ Add to `configuration.yaml`:
 logger:
   default: warning
   logs:
-    custom_components.koios_clock: debug
+    custom_components.koiosdigital: debug
 ```
 
 #### Manual API Testing
@@ -207,7 +207,7 @@ curl -X POST http://DEVICE_IP/api/led/config \
 ### Manual Update
 
 1. Download latest files
-2. Replace files in `/config/custom_components/koios_clock/`
+2. Replace files in `/config/custom_components/koiosdigital/`
 3. Restart Home Assistant
 
 ### HACS Update
@@ -228,7 +228,7 @@ curl -X POST http://DEVICE_IP/api/led/config \
 2. **Remove Files** (if desired)
 
    ```bash
-   rm -rf /config/custom_components/koios_clock/
+   rm -rf /config/custom_components/koiosdigital/
    ```
 
 3. **Restart Home Assistant**

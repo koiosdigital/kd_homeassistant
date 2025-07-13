@@ -9,7 +9,7 @@ set_led_effect:
       selector:
         entity:
           domain: light
-          integration: koios_clock
+          integration: koiosdigital
     effect:
       name: Effect
       description: LED effect to apply
@@ -49,7 +49,7 @@ set_fibonacci_theme:
       selector:
         entity:
           domain: light
-          integration: koios_clock
+          integration: koiosdigital
     theme:
       name: Theme
       description: Theme name to apply
@@ -88,7 +88,7 @@ set_nixie_config:
       selector:
         entity:
           domain: light
-          integration: koios_clock
+          integration: koiosdigital
     brightness:
       name: Brightness
       description: Nixie tube brightness (0-100%)
