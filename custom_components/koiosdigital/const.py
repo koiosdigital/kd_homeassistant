@@ -1,6 +1,6 @@
 """Constants for the Koios Digital Clock integration."""
 
-DOMAIN = "koios_clock"
+DOMAIN = "koiosdigital"
 
 # Device models
 MODEL_FIBONACCI = "fibonacci"
