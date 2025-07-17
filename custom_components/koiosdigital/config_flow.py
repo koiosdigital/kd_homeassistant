@@ -59,20 +59,6 @@ class PlaceholderAuth:
             raise InvalidAuth from err
 
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-    session = async_get_clientsession(hass)
-    hub = PlaceholderAuth(data[CONF_HOST], data[CONF_PORT])
-
-    result = await hub.authenticate(session)
-
-    # Return info that you want to store in the config entry.
-    return {"title": result["model"], "model": result["subtype"]}
-
-
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Koios Digital Clock."""
 
@@ -92,7 +78,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
+                session = async_get_clientsession(self.hass)
+                hub = PlaceholderAuth(user_input[CONF_HOST], user_input[CONF_PORT])
+                device_info = await hub.authenticate(session)
+                
+                # Use hostname for unique ID if available, otherwise fall back to host:port
+                hostname = device_info.get("hostname", user_input[CONF_HOST])
+                await self.async_set_unique_id(hostname)
+                self._abort_if_unique_id_configured()
+                
+                return self.async_create_entry(
+                    title=device_info.get("model", "Koios Digital Clock"),
+                    data={
+                        **user_input,
+                        "model": device_info.get("subtype", "unknown"),
+                    }
+                )
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -100,18 +101,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
-            else:
-                # Check if already configured
-                await self.async_set_unique_id(f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}")
-                self._abort_if_unique_id_configured()
-                
-                return self.async_create_entry(
-                    title=info["title"],
-                    data={
-                        **user_input,
-                        "model": info["model"],
-                    }
-                )
+                errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -121,35 +111,63 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: zeroconf.ZeroconfServiceInfo
     ) -> FlowResult:
         """Handle zeroconf discovery."""
+        _LOGGER.debug("Zeroconf discovery received: %s", discovery_info)
+        
         host = discovery_info.host
         port = discovery_info.port or 80
         properties = discovery_info.properties
+        
+        _LOGGER.debug("Discovery properties: %s", properties)
 
-        # Extract info from zeroconf properties
-        model = properties.get("subtype")
-        hostname = properties.get("model", discovery_info.hostname.replace(".local.", ""))
+        # Extract info from zeroconf properties - use mDNS hostname for discovery
+        # Properties might be bytes, so decode them
+        subtype = properties.get("subtype") or properties.get(b"subtype")
+        if isinstance(subtype, bytes):
+            subtype = subtype.decode("utf-8")
+            
+        hostname = discovery_info.hostname.replace(".local.", "")  # Use mDNS hostname
 
-        if not model:
+        _LOGGER.debug("Extracted subtype: %s, hostname: %s", subtype, hostname)
+
+        # If no subtype in mDNS properties, try to get it from the device API
+        device_info = None
+        if not subtype:
+            _LOGGER.debug("No subtype in mDNS properties, trying to fetch from device API")
+            try:
+                session = async_get_clientsession(self.hass)
+                hub = PlaceholderAuth(host, port)
+                device_info = await hub.authenticate(session)
+                subtype = device_info.get("subtype")
+                _LOGGER.debug("Got subtype from device API: %s", subtype)
+            except Exception as err:
+                _LOGGER.warning("Failed to get device info during discovery: %s", err)
+                return self.async_abort(reason="cannot_connect")
+            
+        if not subtype:
+            _LOGGER.warning("No subtype found in discovery properties or device API, aborting")
             return self.async_abort(reason="invalid_discovery")
 
-        # Set unique ID to prevent duplicates
-        await self.async_set_unique_id(f"{host}:{port}")
+        # Set unique ID to prevent duplicates - use hostname for uniqueness
+        await self.async_set_unique_id(hostname)
         self._abort_if_unique_id_configured(
             updates={CONF_HOST: host, CONF_PORT: port}
         )
 
         self._discovered_host = host
         self._discovered_port = port
-        self._discovered_model = model
+        self._discovered_model = subtype  # Use subtype as model
         self._discovered_hostname = hostname
 
-        # Try to authenticate to make sure the device is reachable
-        try:
-            session = async_get_clientsession(self.hass)
-            hub = PlaceholderAuth(host, port)
-            await hub.authenticate(session)
-        except Exception:
-            return self.async_abort(reason="cannot_connect")
+        # If we didn't authenticate above, do it now to verify connectivity
+        if device_info is None:
+            try:
+                session = async_get_clientsession(self.hass)
+                hub = PlaceholderAuth(host, port)
+                await hub.authenticate(session)
+                _LOGGER.debug("Successfully authenticated with discovered device at %s:%s", host, port)
+            except Exception as err:
+                _LOGGER.warning("Failed to authenticate with discovered device at %s:%s: %s", host, port, err)
+                return self.async_abort(reason="cannot_connect")
 
         self.context.update({"title_placeholders": {"name": hostname}})
         return await self.async_step_discovery_confirm()

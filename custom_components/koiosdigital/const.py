@@ -33,9 +33,6 @@ LED_EFFECTS = {
 # Default update interval
 DEFAULT_UPDATE_INTERVAL = 30
 
-# zeroconf service type
-ZEROCONF_TYPE = "_koiosdigital._tcp.local."
-
 # Default update interval
 DEFAULT_UPDATE_INTERVAL = 30
 
