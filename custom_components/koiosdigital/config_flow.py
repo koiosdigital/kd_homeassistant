@@ -45,9 +45,9 @@ class PlaceholderAuth:
                 if response.status == 200:
                     data = await response.json()
                     return {
-                        "firmware_variant": data.get("firmware_variant"),
+                        "subtype": data.get("subtype"),
                         "version": data.get("version"),
-                        "hostname": data.get("hostname"),
+                        "model": data.get("model"),
                     }
                 else:
                     raise CannotConnect
@@ -70,7 +70,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     result = await hub.authenticate(session)
 
     # Return info that you want to store in the config entry.
-    return {"title": result["hostname"], "model": result["firmware_variant"]}
+    return {"title": result["model"], "model": result["subtype"]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -126,8 +126,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         properties = discovery_info.properties
 
         # Extract info from zeroconf properties
-        model = properties.get("model")
-        hostname = properties.get("hostname", discovery_info.hostname.replace(".local.", ""))
+        model = properties.get("subtype")
+        hostname = properties.get("model", discovery_info.hostname.replace(".local.", ""))
 
         if not model:
             return self.async_abort(reason="invalid_discovery")

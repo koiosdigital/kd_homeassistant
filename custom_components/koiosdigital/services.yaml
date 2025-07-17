@@ -17,12 +17,14 @@ set_led_effect:
       selector:
         select:
           options:
-            - "off"
             - "solid"
             - "blink"
             - "breathe"
             - "cyclic"
             - "rainbow"
+            - "color_wipe"
+            - "theater_chase"
+            - "sparkle"
     brightness:
       name: Brightness
       description: LED brightness (0-255)

@@ -23,7 +23,7 @@ EXAMPLE_AUTOMATIONS = [
                                 "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 255, 0, 0],  # Yellow for day
-                                    "effect": "solid",
+                                    "effect": "Solid",
                                     "brightness": 200,
                                 },
                             }
@@ -39,7 +39,7 @@ EXAMPLE_AUTOMATIONS = [
                                 "target": {"entity_id": "light.koiosdigital_backlight"},
                                 "data": {
                                     "rgbw_color": [255, 100, 0, 0],  # Orange for evening
-                                    "effect": "breathe",
+                                    "effect": "Breathe",
                                     "brightness": 100,
                                 },
                             }

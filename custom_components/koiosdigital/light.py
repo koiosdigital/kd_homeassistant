@@ -19,7 +19,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LED_CONFIG,
+    API_LEDS,
+    API_NIXIE,
+    API_FIBONACCI,
     DOMAIN,
     LED_EFFECTS,
     MODEL_FIBONACCI,
@@ -41,14 +43,17 @@ async def async_setup_entry(
 
     entities = []
 
-    # All models have backlight LEDs
-    entities.append(KoiosClockBacklight(coordinator))
-
-    # Model-specific lights
-    if coordinator.model == MODEL_NIXIE:
-        entities.append(KoiosClockNixieTubes(coordinator))
-    elif coordinator.model == MODEL_FIBONACCI:
+    # Model-specific lights based on API availability
+    if coordinator.model == MODEL_FIBONACCI:
+        # Fibonacci clocks only have the fibonacci theme light
         entities.append(KoiosClockFibonacciTheme(coordinator))
+    elif coordinator.model == MODEL_NIXIE:
+        # Nixie clocks have both LED backlight and nixie tubes
+        entities.append(KoiosClockBacklight(coordinator))
+        entities.append(KoiosClockNixieTubes(coordinator))
+    elif coordinator.model == MODEL_WORDCLOCK:
+        # Wordclock only has LED backlight
+        entities.append(KoiosClockBacklight(coordinator))
 
     async_add_entities(entities, True)
 
@@ -89,33 +94,33 @@ class KoiosClockBacklight(KoiosClockLightEntity):
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        led_data = self.coordinator.data.get("led", {})
-        return led_data.get("mode", "off") != "off"
+        led_data = self.coordinator.data.get("leds", {})
+        return led_data.get("on", False) and led_data.get("brightness", 0) > 0
 
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        led_data = self.coordinator.data.get("led", {})
+        led_data = self.coordinator.data.get("leds", {})
         brightness = led_data.get("brightness", 255)
         return brightness
 
     @property
     def rgbw_color(self) -> tuple[int, int, int, int] | None:
         """Return the rgbw color value."""
-        led_data = self.coordinator.data.get("led", {})
+        led_data = self.coordinator.data.get("leds", {})
         color = led_data.get("color", {})
         return (
             color.get("r", 255),
             color.get("g", 255),
             color.get("b", 255),
-            color.get("w", 0),
+            color.get("w", 0)
         )
 
     @property
     def effect(self) -> str | None:
         """Return the current effect."""
-        led_data = self.coordinator.data.get("led", {})
-        mode = led_data.get("mode", "off")
+        led_data = self.coordinator.data.get("leds", {})
+        mode = led_data.get("mode", "solid")
         return LED_EFFECTS.get(mode, mode)
 
     @property
@@ -130,12 +135,13 @@ class KoiosClockBacklight(KoiosClockLightEntity):
         if ATTR_BRIGHTNESS in kwargs:
             data["brightness"] = kwargs[ATTR_BRIGHTNESS]
 
+        if ATTR_RGB_COLOR in kwargs:
+            r, g, b = kwargs[ATTR_RGB_COLOR]
+            data["color"] = {"r": r, "g": g, "b": b, "w": 0}
+
         if ATTR_RGBW_COLOR in kwargs:
             r, g, b, w = kwargs[ATTR_RGBW_COLOR]
             data["color"] = {"r": r, "g": g, "b": b, "w": w}
-        elif ATTR_RGB_COLOR in kwargs:
-            r, g, b = kwargs[ATTR_RGB_COLOR]
-            data["color"] = {"r": r, "g": g, "b": b, "w": 0}
 
         if ATTR_EFFECT in kwargs:
             # Find the mode key for the effect name
@@ -147,14 +153,17 @@ class KoiosClockBacklight(KoiosClockLightEntity):
         if "mode" not in data and not self.is_on:
             data["mode"] = "solid"
 
-        success = await self.coordinator.async_post_data(API_LED_CONFIG, data)
+        # Ensure the light is marked as on
+        data["on"] = True
+
+        success = await self.coordinator.async_post_data(API_LEDS, data)
         if success:
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
-        data = {"mode": "off"}
-        success = await self.coordinator.async_post_data(API_LED_CONFIG, data)
+        data = {"on": False}
+        success = await self.coordinator.async_post_data(API_LEDS, data)
         if success:
             await self.coordinator.async_request_refresh()
 
@@ -173,7 +182,7 @@ class KoiosClockNixieTubes(KoiosClockLightEntity):
     def is_on(self) -> bool:
         """Return true if nixie tubes are enabled."""
         nixie_data = self.coordinator.data.get("nixie", {})
-        return nixie_data.get("enabled", True)
+        return nixie_data.get("on", True)
 
     @property
     def brightness(self) -> int | None:
@@ -185,25 +194,21 @@ class KoiosClockNixieTubes(KoiosClockLightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the nixie tubes."""
-        from .const import API_NIXIE_CONFIG
-
-        data = {"enabled": True}
+        data = {"on": True}
 
         if ATTR_BRIGHTNESS in kwargs:
             # Convert from 0-255 to 0-100% scale
             brightness_percent = int(kwargs[ATTR_BRIGHTNESS] * 100 / 255)
             data["brightness"] = brightness_percent
 
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the nixie tubes."""
-        from .const import API_NIXIE_CONFIG
-
-        data = {"enabled": False}
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        data = {"on": False}
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()
 
@@ -222,8 +227,8 @@ class KoiosClockFibonacciTheme(KoiosClockLightEntity):
     @property
     def is_on(self) -> bool:
         """Return true if the fibonacci display is active."""
-        # Fibonacci is always "on" - brightness controls intensity
-        return True
+        fib_data = self.coordinator.data.get("fibonacci", {})
+        return fib_data.get("on", True)
 
     @property
     def brightness(self) -> int | None:
@@ -235,19 +240,21 @@ class KoiosClockFibonacciTheme(KoiosClockLightEntity):
     def effect(self) -> str | None:
         """Return the current theme as an effect."""
         fib_data = self.coordinator.data.get("fibonacci", {})
-        return fib_data.get("theme_name", "RGB")
+        theme_id = fib_data.get("theme_id", 0)
+        themes_data = fib_data.get("themes", [])
+        theme = next((t for t in themes_data if t.get("id") == theme_id), None)
+        return theme.get("name", "RGB") if theme else "RGB"
 
     @property
     def effect_list(self) -> list[str]:
         """Return the list of available themes."""
-        themes_data = self.coordinator.data.get("fibonacci_themes", [])
+        fib_data = self.coordinator.data.get("fibonacci", {})
+        themes_data = fib_data.get("themes", [])
         return [theme.get("name", f"Theme {theme.get('id', '')}") for theme in themes_data]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Adjust fibonacci settings."""
-        from .const import API_FIBONACCI_CONFIG
-
-        data = {}
+        data = {"on": True}
 
         if ATTR_BRIGHTNESS in kwargs:
             data["brightness"] = kwargs[ATTR_BRIGHTNESS]
@@ -255,23 +262,21 @@ class KoiosClockFibonacciTheme(KoiosClockLightEntity):
         if ATTR_EFFECT in kwargs:
             # Find the theme ID for the effect name
             effect_name = kwargs[ATTR_EFFECT]
-            themes_data = self.coordinator.data.get("fibonacci_themes", [])
+            fib_data = self.coordinator.data.get("fibonacci", {})
+            themes_data = fib_data.get("themes", [])
             theme_id = next(
                 (theme["id"] for theme in themes_data if theme.get("name") == effect_name),
                 0
             )
             data["theme_id"] = theme_id
 
-        if data:
-            success = await self.coordinator.async_post_data(API_FIBONACCI_CONFIG, data)
-            if success:
-                await self.coordinator.async_request_refresh()
+        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
+        if success:
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Fibonacci display cannot be turned off, set to minimum brightness."""
-        from .const import API_FIBONACCI_CONFIG
-
-        data = {"brightness": 1}
-        success = await self.coordinator.async_post_data(API_FIBONACCI_CONFIG, data)
+        """Turn off the fibonacci display."""
+        data = {"on": False}
+        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
         if success:
             await self.coordinator.async_request_refresh()

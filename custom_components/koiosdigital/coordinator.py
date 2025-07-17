@@ -12,10 +12,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     API_ABOUT,
-    API_LED_CONFIG,
-    API_NIXIE_CONFIG,
-    API_FIBONACCI_CONFIG,
-    API_FIBONACCI_THEMES,
+    API_LEDS,
+    API_NIXIE,
+    API_FIBONACCI,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     MODEL_FIBONACCI,
@@ -61,28 +60,28 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
             if about_data:
                 data["about"] = about_data
 
-            # Get LED configuration (all models have LEDs)
-            led_data = await self._async_get_data(API_LED_CONFIG)
-            if led_data:
-                data["led"] = led_data
-
-            # Get model-specific configuration
+            # Get model-specific configuration based on subtype
             if self.model == MODEL_FIBONACCI:
-                fib_data = await self._async_get_data(API_FIBONACCI_CONFIG)
+                # Fibonacci clocks only use /api/fibonacci endpoint
+                fib_data = await self._async_get_data(API_FIBONACCI)
                 if fib_data:
                     data["fibonacci"] = fib_data
 
-                # Get available themes
-                themes_data = await self._async_get_data(API_FIBONACCI_THEMES)
-                if themes_data:
-                    data["fibonacci_themes"] = themes_data
-
             elif self.model == MODEL_NIXIE:
-                nixie_data = await self._async_get_data(API_NIXIE_CONFIG)
+                # Nixie clocks use both /api/leds and /api/nixie endpoints
+                led_data = await self._async_get_data(API_LEDS)
+                if led_data:
+                    data["leds"] = led_data
+
+                nixie_data = await self._async_get_data(API_NIXIE)
                 if nixie_data:
                     data["nixie"] = nixie_data
 
-            # wordclock only has LED config, which we already fetched
+            elif self.model == MODEL_WORDCLOCK:
+                # Wordclock only uses /api/leds endpoint
+                led_data = await self._async_get_data(API_LEDS)
+                if led_data:
+                    data["leds"] = led_data
 
             return data
 

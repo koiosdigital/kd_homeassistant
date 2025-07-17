@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_NIXIE_CONFIG,
+    API_NIXIE,
     DOMAIN,
     MODEL_NIXIE,
 )
@@ -82,14 +82,14 @@ class KoiosClockMilitaryTimeSwitch(KoiosClockSwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on military time."""
         data = {"military_time": True}
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off military time."""
         data = {"military_time": False}
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()
 
@@ -111,13 +111,13 @@ class KoiosClockBlinkingDotsSwitch(KoiosClockSwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on blinking dots."""
         data = {"blinking_dots": True}
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off blinking dots."""
         data = {"blinking_dots": False}
-        success = await self.coordinator.async_post_data(API_NIXIE_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_NIXIE, data)
         if success:
             await self.coordinator.async_request_refresh()

@@ -14,16 +14,17 @@ This is a comprehensive Home Assistant custom integration for Koios Digital Cloc
 
 #### Fibonacci Clock
 
-- **Light Entity**: Theme control with brightness
-- **Select Entity**: Theme selection (RGB, Mondrian, Basbrun, 80's, Pastel, Modern, Cold, Warm, Earth, Dark)
+- **Light Entity**: Theme control with brightness and on/off state
+- **Select Entity**: Theme selection (themes loaded from device)
 - **Number Entity**: Brightness control (0-255)
 
 #### Nixie Clock
 
 - **Light Entity**: Backlight LED control (RGBW) with effects
-- **Light Entity**: Nixie tube brightness control
+- **Light Entity**: Nixie tube brightness and on/off control
 - **Switch Entities**: Military time format, Blinking dots
 - **Number Entities**: LED brightness (0-255), Nixie brightness (0-100%)
+- **Select Entity**: LED effect selection
 
 #### Wordclock
 
@@ -66,10 +67,10 @@ If automatic discovery doesn't work:
 The integration communicates with the device using these REST API endpoints:
 
 - `/api/about` - Device information
-- `/api/led/config` - LED configuration (all variants)
-- `/api/nixie/config` - Nixie-specific configuration
-- `/api/fibonacci/config` - Fibonacci configuration
-- `/api/fibonacci/themes` - Available Fibonacci themes
+- `/api/leds` - LED configuration (Nixie and Wordclock variants)
+- `/api/nixie` - Nixie-specific configuration (Nixie variants only)
+- `/api/fibonacci` - Fibonacci configuration (Fibonacci variants only)
+- `/api/system/config` - System configuration
 
 ## Device Entities
 
@@ -77,49 +78,42 @@ The integration communicates with the device using these REST API endpoints:
 
 #### All Devices
 
-- `light.koiosdigital_backlight` - Backlight LED control
+- Device information and configuration
 
-#### Fibonacci Clock Additional Entities
+#### Fibonacci Clock Only
 
 - `light.koiosdigital_theme` - Theme and brightness control
-- `select.koiosdigital_fibonacci_theme` - Theme selection
-- `number.koiosdigital_fibonacci_brightness` - Brightness slider
 
-#### Nixie Clock Additional Entities
+#### Nixie Clock Only
 
-- `light.koiosdigital_nixie_tubes` - Tube brightness control
+- `light.koiosdigital_backlight` - Backlight LED control
+- `light.koiosdigital_nixie_tubes` - Nixie tube control
 - `switch.koiosdigital_military_time` - 24-hour format toggle
 - `switch.koiosdigital_blinking_dots` - Blinking separator dots
+- `select.koiosdigital_led_effect` - LED effect selection
+- `number.koiosdigital_led_brightness` - LED brightness control
 - `number.koiosdigital_nixie_brightness` - Nixie brightness slider
 
-#### Common Entities (All Devices)
+#### Wordclock Only
 
+- `light.koiosdigital_backlight` - Backlight LED control
 - `select.koiosdigital_led_effect` - LED effect selection
 - `number.koiosdigital_led_brightness` - LED brightness control
 
 ## Supported LED Effects
 
-- **Off**: Turn off LEDs
 - **Solid**: Solid color display
 - **Blink**: Blinking effect
 - **Breathe**: Breathing/pulsing effect
 - **Cyclic**: Cycling through colors
 - **Rainbow**: Rainbow color pattern
+- **Color Wipe**: Color wipe effect
+- **Theater Chase**: Theater chase effect
+- **Sparkle**: Sparkle effect
 
 ## Fibonacci Themes
 
-The Fibonacci clock supports multiple color themes:
-
-- RGB (default)
-- Mondrian
-- Basbrun
-- 80's
-- Pastel
-- Modern
-- Cold
-- Warm
-- Earth
-- Dark
+The Fibonacci clock supports multiple color themes that are loaded dynamically from the device. The available themes depend on the device configuration.
 
 ## Troubleshooting
 

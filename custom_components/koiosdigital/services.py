@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN, API_LED_CONFIG, API_NIXIE_CONFIG, API_FIBONACCI_CONFIG
+from .const import DOMAIN, API_LEDS, API_NIXIE, API_FIBONACCI
 from .coordinator import KoiosClockDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if color is not None:
                 data["color"] = {"r": color[0], "g": color[1], "b": color[2], "w": 0}
 
-            await coordinator.async_post_data(API_LED_CONFIG, data)
+            await coordinator.async_post_data(API_LEDS, data)
             await coordinator.async_request_refresh()
 
     async def set_fibonacci_theme(call: ServiceCall) -> None:
@@ -85,7 +85,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 continue
 
             # Find theme ID by name
-            themes_data = coordinator.data.get("fibonacci_themes", [])
+            fib_data = coordinator.data.get("fibonacci", {})
+            themes_data = fib_data.get("themes", [])
             theme_id = next(
                 (t["id"] for t in themes_data if t.get("name") == theme),
                 0
@@ -95,7 +96,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if brightness is not None:
                 data["brightness"] = brightness
 
-            await coordinator.async_post_data(API_FIBONACCI_CONFIG, data)
+            await coordinator.async_post_data(API_FIBONACCI, data)
             await coordinator.async_request_refresh()
 
     async def set_nixie_config(call: ServiceCall) -> None:
@@ -108,12 +109,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 continue
 
             data = {}
-            for key in ["brightness", "military_time", "blinking_dots", "enabled"]:
+            for key in ["brightness", "military_time", "blinking_dots"]:
                 if key in call.data:
                     data[key] = call.data[key]
+            
+            # Handle the 'enabled' parameter mapping to 'on'
+            if "enabled" in call.data:
+                data["on"] = call.data["enabled"]
 
             if data:
-                await coordinator.async_post_data(API_NIXIE_CONFIG, data)
+                await coordinator.async_post_data(API_NIXIE, data)
                 await coordinator.async_request_refresh()
 
     hass.services.async_register(

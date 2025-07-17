@@ -9,20 +9,32 @@ MODEL_WORDCLOCK = "wordclock"
 
 # API endpoints
 API_ABOUT = "/api/about"
-API_LED_CONFIG = "/api/led/config"
-API_NIXIE_CONFIG = "/api/nixie/config"
-API_FIBONACCI_CONFIG = "/api/fibonacci/config"
-API_FIBONACCI_THEMES = "/api/fibonacci/themes"
+API_SYSTEM_CONFIG = "/api/system/config"
+API_TIME_ZONEDB = "/api/time/zonedb"
+API_LEDS = "/api/leds"
+API_LEDS_WS = "/api/leds/ws"
+API_NIXIE = "/api/nixie"
+API_NIXIE_WS = "/api/nixie/ws"
+API_FIBONACCI = "/api/fibonacci"
+API_FIBONACCI_WS = "/api/fibonacci/ws"
 
-# LED effects
+# LED effects (updated to match swagger)
 LED_EFFECTS = {
-    "off": "Off",
     "solid": "Solid",
-    "blink": "Blink",
+    "blink": "Blink", 
     "breathe": "Breathe",
     "cyclic": "Cyclic",
     "rainbow": "Rainbow",
+    "color_wipe": "Color Wipe",
+    "theater_chase": "Theater Chase",
+    "sparkle": "Sparkle",
 }
+
+# Default update interval
+DEFAULT_UPDATE_INTERVAL = 30
+
+# zeroconf service type
+ZEROCONF_TYPE = "_koiosdigital._tcp.local."
 
 # Default update interval
 DEFAULT_UPDATE_INTERVAL = 30

@@ -11,11 +11,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LED_CONFIG,
-    API_FIBONACCI_CONFIG,
+    API_LEDS,
+    API_FIBONACCI,
     DOMAIN,
     LED_EFFECTS,
     MODEL_FIBONACCI,
+    MODEL_NIXIE,
+    MODEL_WORDCLOCK,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
 
@@ -32,14 +34,16 @@ async def async_setup_entry(
 
     entities = []
 
-    # All models have LED effects
-    entities.append(KoiosClockLEDEffectSelect(coordinator))
+    # LED effects available for Nixie and Wordclock models
+    if coordinator.model in [MODEL_NIXIE, MODEL_WORDCLOCK]:
+        entities.append(KoiosClockLEDEffectSelect(coordinator))
 
     # Fibonacci-specific selects
     if coordinator.model == MODEL_FIBONACCI:
         entities.append(KoiosClockFibonacciThemeSelect(coordinator))
 
-    async_add_entities(entities, True)
+    if entities:
+        async_add_entities(entities, True)
 
 
 class KoiosClockSelectEntity(CoordinatorEntity, SelectEntity):
@@ -78,8 +82,8 @@ class KoiosClockLEDEffectSelect(KoiosClockSelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the current LED effect."""
-        led_data = self.coordinator.data.get("led", {})
-        mode = led_data.get("mode", "off")
+        led_data = self.coordinator.data.get("leds", {})
+        mode = led_data.get("mode", "solid")
         return LED_EFFECTS.get(mode, mode)
 
     async def async_select_option(self, option: str) -> None:
@@ -87,7 +91,7 @@ class KoiosClockLEDEffectSelect(KoiosClockSelectEntity):
         # Find the mode key for the effect name
         mode = next((k for k, v in LED_EFFECTS.items() if v == option), "solid")
         data = {"mode": mode}
-        success = await self.coordinator.async_post_data(API_LED_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_LEDS, data)
         if success:
             await self.coordinator.async_request_refresh()
 
@@ -103,24 +107,29 @@ class KoiosClockFibonacciThemeSelect(KoiosClockSelectEntity):
     @property
     def options(self) -> list[str]:
         """Return the list of available themes."""
-        themes_data = self.coordinator.data.get("fibonacci_themes", [])
+        fib_data = self.coordinator.data.get("fibonacci", {})
+        themes_data = fib_data.get("themes", [])
         return [theme.get("name", f"Theme {theme.get('id', '')}") for theme in themes_data]
 
     @property
     def current_option(self) -> str | None:
         """Return the current theme."""
         fib_data = self.coordinator.data.get("fibonacci", {})
-        return fib_data.get("theme_name", "RGB")
+        theme_id = fib_data.get("theme_id", 0)
+        themes_data = fib_data.get("themes", [])
+        theme = next((t for t in themes_data if t.get("id") == theme_id), None)
+        return theme.get("name", "RGB") if theme else "RGB"
 
     async def async_select_option(self, option: str) -> None:
         """Change the Fibonacci theme."""
         # Find the theme ID for the option name
-        themes_data = self.coordinator.data.get("fibonacci_themes", [])
+        fib_data = self.coordinator.data.get("fibonacci", {})
+        themes_data = fib_data.get("themes", [])
         theme_id = next(
             (theme["id"] for theme in themes_data if theme.get("name") == option),
             0
         )
         data = {"theme_id": theme_id}
-        success = await self.coordinator.async_post_data(API_FIBONACCI_CONFIG, data)
+        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
         if success:
             await self.coordinator.async_request_refresh()
