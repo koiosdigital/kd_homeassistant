@@ -11,10 +11,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LEDS,
+    API_LED_CHANNEL,
     API_FIBONACCI,
     DOMAIN,
     LED_EFFECTS,
+    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -78,22 +79,30 @@ class KoiosClockLEDEffectSelect(KoiosClockSelectEntity):
         super().__init__(coordinator, "led_effect", "LED Effect")
         self._attr_icon = "mdi:lightbulb"
         self._attr_options = list(LED_EFFECTS.values())
+        self._channel_index = LED_CHANNEL_BACKLIGHT
 
     @property
     def current_option(self) -> str | None:
         """Return the current LED effect."""
-        led_data = self.coordinator.data.get("leds", {})
-        mode = led_data.get("mode", "solid")
-        return LED_EFFECTS.get(mode, mode)
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        effect_id = channel_data.get("effect_id", "SOLID")
+        return LED_EFFECTS.get(effect_id, effect_id)
 
     async def async_select_option(self, option: str) -> None:
         """Change the LED effect."""
-        # Find the mode key for the effect name
-        mode = next((k for k, v in LED_EFFECTS.items() if v == option), "solid")
-        data = {"mode": mode}
-        success = await self.coordinator.async_post_data(API_LEDS, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        # Find the effect ID for the effect name
+        effect_id = next((k for k, v in LED_EFFECTS.items() if v == option), "SOLID")
+        data = {"effect_id": effect_id}
+        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
+        response = await self.coordinator.async_post_data(endpoint, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            led_channels = self.coordinator.data.setdefault("led_channels", {})
+            led_channels[self._channel_index] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockFibonacciThemeSelect(KoiosClockSelectEntity):
@@ -130,6 +139,10 @@ class KoiosClockFibonacciThemeSelect(KoiosClockSelectEntity):
             0
         )
         data = {"theme_id": theme_id}
-        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_FIBONACCI, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["fibonacci"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)

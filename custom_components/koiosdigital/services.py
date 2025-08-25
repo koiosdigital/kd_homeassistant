@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN, API_LEDS, API_NIXIE, API_FIBONACCI
+from .const import DOMAIN, API_LED_CHANNEL, API_NIXIE, API_FIBONACCI, LED_CHANNEL_BACKLIGHT
 from .coordinator import KoiosClockDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,14 +64,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if not coordinator:
                 continue
 
-            data = {"mode": effect}
+            data = {"effect_id": effect}
             if brightness is not None:
                 data["brightness"] = brightness
             if color is not None:
-                data["color"] = {"r": color[0], "g": color[1], "b": color[2], "w": 0}
+                data["color"] = {"r": color[0], "g": color[1], "b": color[2]}
+                if len(color) > 3:
+                    data["color"]["w"] = color[3]
 
-            await coordinator.async_post_data(API_LEDS, data)
-            await coordinator.async_request_refresh()
+            endpoint = f"{API_LED_CHANNEL}/{LED_CHANNEL_BACKLIGHT}"
+            response = await coordinator.async_post_data(endpoint, data)
+            
+            if response:
+                # Update the coordinator data with the response
+                led_channels = coordinator.data.setdefault("led_channels", {})
+                led_channels[LED_CHANNEL_BACKLIGHT] = response
+                coordinator.async_set_updated_data(coordinator.data)
 
     async def set_fibonacci_theme(call: ServiceCall) -> None:
         """Service to set Fibonacci theme."""
@@ -96,8 +104,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if brightness is not None:
                 data["brightness"] = brightness
 
-            await coordinator.async_post_data(API_FIBONACCI, data)
-            await coordinator.async_request_refresh()
+            response = await coordinator.async_post_data(API_FIBONACCI, data)
+            
+            if response:
+                # Update the coordinator data with the response
+                coordinator.data["fibonacci"] = response
+                coordinator.async_set_updated_data(coordinator.data)
 
     async def set_nixie_config(call: ServiceCall) -> None:
         """Service to set Nixie configuration."""
@@ -118,8 +130,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 data["on"] = call.data["enabled"]
 
             if data:
-                await coordinator.async_post_data(API_NIXIE, data)
-                await coordinator.async_request_refresh()
+                response = await coordinator.async_post_data(API_NIXIE, data)
+                
+                if response:
+                    # Update the coordinator data with the response
+                    coordinator.data["nixie"] = response
+                    coordinator.async_set_updated_data(coordinator.data)
 
     hass.services.async_register(
         DOMAIN,

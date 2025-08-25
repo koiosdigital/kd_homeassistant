@@ -11,29 +11,30 @@ MODEL_WORDCLOCK = "wordclock"
 API_ABOUT = "/api/about"
 API_SYSTEM_CONFIG = "/api/system/config"
 API_TIME_ZONEDB = "/api/time/zonedb"
-API_LEDS = "/api/leds"
-API_LEDS_WS = "/api/leds/ws"
+API_LED_EFFECTS = "/api/led/effects"
+API_LED_CONFIG = "/api/led/config"
+API_LED_CHANNEL = "/api/led/channel"  # Base path, append /{channelIndex}
 API_NIXIE = "/api/nixie"
 API_NIXIE_WS = "/api/nixie/ws"
 API_FIBONACCI = "/api/fibonacci"
 API_FIBONACCI_WS = "/api/fibonacci/ws"
 
-# LED effects (updated to match swagger)
+# LED effects mapping (API ID -> Display Name)
 LED_EFFECTS = {
-    "solid": "Solid",
-    "blink": "Blink", 
-    "breathe": "Breathe",
-    "cyclic": "Cyclic",
-    "rainbow": "Rainbow",
-    "color_wipe": "Color Wipe",
-    "theater_chase": "Theater Chase",
-    "sparkle": "Sparkle",
+    "SOLID": "Solid",
+    "BLINK": "Blink", 
+    "BREATHE": "Breathe",
+    "CYCLIC": "Cyclic",
+    "RAINBOW": "Rainbow",
+    "COLOR_WIPE": "Color Wipe",
+    "THEATER_CHASE": "Theater Chase",
+    "SPARKLE": "Sparkle",
 }
 
-# Default update interval
-DEFAULT_UPDATE_INTERVAL = 30
+# Default LED channel indices
+LED_CHANNEL_BACKLIGHT = 0
 
-# Default update interval
+# Default update interval (30 seconds as requested)
 DEFAULT_UPDATE_INTERVAL = 30
 
 # zeroconf service type

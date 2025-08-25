@@ -11,10 +11,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LEDS,
+    API_LED_CHANNEL,
     API_NIXIE,
     API_FIBONACCI,
     DOMAIN,
+    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -84,19 +85,27 @@ class KoiosClockLEDBrightnessNumber(KoiosClockNumberEntity):
         self._attr_native_max_value = 255
         self._attr_native_step = 1
         self._attr_native_unit_of_measurement = None
+        self._channel_index = LED_CHANNEL_BACKLIGHT
 
     @property
     def native_value(self) -> float | None:
         """Return the current LED brightness."""
-        led_data = self.coordinator.data.get("leds", {})
-        return led_data.get("brightness", 255)
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        return channel_data.get("brightness", 255)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the LED brightness."""
         data = {"brightness": int(value)}
-        success = await self.coordinator.async_post_data(API_LEDS, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
+        response = await self.coordinator.async_post_data(endpoint, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            led_channels = self.coordinator.data.setdefault("led_channels", {})
+            led_channels[self._channel_index] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockNixieBrightnessNumber(KoiosClockNumberEntity):
@@ -120,9 +129,13 @@ class KoiosClockNixieBrightnessNumber(KoiosClockNumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the Nixie brightness."""
         data = {"brightness": int(value)}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockFibonacciBrightnessNumber(KoiosClockNumberEntity):
@@ -146,6 +159,10 @@ class KoiosClockFibonacciBrightnessNumber(KoiosClockNumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the Fibonacci brightness."""
         data = {"brightness": int(value)}
-        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_FIBONACCI, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["fibonacci"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)

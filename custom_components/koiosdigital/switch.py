@@ -82,16 +82,24 @@ class KoiosClockMilitaryTimeSwitch(KoiosClockSwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on military time."""
         data = {"military_time": True}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off military time."""
         data = {"military_time": False}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockBlinkingDotsSwitch(KoiosClockSwitchEntity):
@@ -111,13 +119,21 @@ class KoiosClockBlinkingDotsSwitch(KoiosClockSwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on blinking dots."""
         data = {"blinking_dots": True}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off blinking dots."""
         data = {"blinking_dots": False}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)

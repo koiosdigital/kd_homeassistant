@@ -12,11 +12,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     API_ABOUT,
-    API_LEDS,
+    API_LED_CONFIG,
+    API_LED_CHANNEL,
     API_NIXIE,
     API_FIBONACCI,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -68,20 +70,46 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
                     data["fibonacci"] = fib_data
 
             elif self.model == MODEL_NIXIE:
-                # Nixie clocks use both /api/leds and /api/nixie endpoints
-                led_data = await self._async_get_data(API_LEDS)
-                if led_data:
-                    data["leds"] = led_data
+                # Nixie clocks use both LED channels and /api/nixie endpoints
+                led_config = await self._async_get_data(API_LED_CONFIG)
+                if led_config:
+                    data["led_config"] = led_config
+                    
+                # Get state for each LED channel
+                channels = led_config.get("channels", [])
+                led_channels = {}
+                for channel in channels:
+                    channel_idx = channel.get("index")
+                    if channel_idx is not None:
+                        channel_data = await self._async_get_data(f"{API_LED_CHANNEL}/{channel_idx}")
+                        if channel_data:
+                            led_channels[channel_idx] = channel_data
+                
+                if led_channels:
+                    data["led_channels"] = led_channels
 
                 nixie_data = await self._async_get_data(API_NIXIE)
                 if nixie_data:
                     data["nixie"] = nixie_data
 
             elif self.model == MODEL_WORDCLOCK:
-                # Wordclock only uses /api/leds endpoint
-                led_data = await self._async_get_data(API_LEDS)
-                if led_data:
-                    data["leds"] = led_data
+                # Wordclock only uses LED channels
+                led_config = await self._async_get_data(API_LED_CONFIG)
+                if led_config:
+                    data["led_config"] = led_config
+                    
+                # Get state for each LED channel
+                channels = led_config.get("channels", [])
+                led_channels = {}
+                for channel in channels:
+                    channel_idx = channel.get("index")
+                    if channel_idx is not None:
+                        channel_data = await self._async_get_data(f"{API_LED_CHANNEL}/{channel_idx}")
+                        if channel_data:
+                            led_channels[channel_idx] = channel_data
+                
+                if led_channels:
+                    data["led_channels"] = led_channels
 
             return data
 
@@ -105,19 +133,20 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Timeout fetching data from %s: %s", endpoint, err)
             return None
 
-    async def async_post_data(self, endpoint: str, data: dict[str, Any]) -> bool:
-        """Post data to an endpoint."""
+    async def async_post_data(self, endpoint: str, data: dict[str, Any]) -> dict[str, Any] | None:
+        """Post data to an endpoint and return the response."""
         try:
             url = f"{self.base_url}{endpoint}"
             async with self.session.post(url, json=data, timeout=10) as response:
                 if response.status == 200:
-                    return True
+                    # API returns the entire endpoint state after update
+                    return await response.json()
                 else:
                     _LOGGER.error("API endpoint %s returned status %s", endpoint, response.status)
-                    return False
+                    return None
         except aiohttp.ClientError as err:
             _LOGGER.error("Error posting data to %s: %s", endpoint, err)
-            return False
+            return None
         except asyncio.TimeoutError as err:
             _LOGGER.error("Timeout posting data to %s: %s", endpoint, err)
-            return False
+            return None

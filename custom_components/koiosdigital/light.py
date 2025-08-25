@@ -19,11 +19,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LEDS,
+    API_LED_CHANNEL,
     API_NIXIE,
     API_FIBONACCI,
     DOMAIN,
     LED_EFFECTS,
+    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -90,25 +91,28 @@ class KoiosClockBacklight(KoiosClockLightEntity):
         self._attr_supported_color_modes = {ColorMode.RGBW}
         self._attr_color_mode = ColorMode.RGBW
         self._attr_supported_features = LightEntityFeature.EFFECT
+        self._channel_index = LED_CHANNEL_BACKLIGHT
 
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        led_data = self.coordinator.data.get("leds", {})
-        return led_data.get("on", False) and led_data.get("brightness", 0) > 0
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        return channel_data.get("on", False)
 
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        led_data = self.coordinator.data.get("leds", {})
-        brightness = led_data.get("brightness", 255)
-        return brightness
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        return channel_data.get("brightness", 255)
 
     @property
     def rgbw_color(self) -> tuple[int, int, int, int] | None:
         """Return the rgbw color value."""
-        led_data = self.coordinator.data.get("leds", {})
-        color = led_data.get("color", {})
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        color = channel_data.get("color", {})
         return (
             color.get("r", 255),
             color.get("g", 255),
@@ -119,9 +123,10 @@ class KoiosClockBacklight(KoiosClockLightEntity):
     @property
     def effect(self) -> str | None:
         """Return the current effect."""
-        led_data = self.coordinator.data.get("leds", {})
-        mode = led_data.get("mode", "solid")
-        return LED_EFFECTS.get(mode, mode)
+        led_channels = self.coordinator.data.get("led_channels", {})
+        channel_data = led_channels.get(self._channel_index, {})
+        effect_id = channel_data.get("effect_id", "SOLID")
+        return LED_EFFECTS.get(effect_id, effect_id)
 
     @property
     def effect_list(self) -> list[str]:
@@ -130,42 +135,51 @@ class KoiosClockBacklight(KoiosClockLightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
-        data = {}
+        data = {"on": True}
 
         if ATTR_BRIGHTNESS in kwargs:
             data["brightness"] = kwargs[ATTR_BRIGHTNESS]
 
         if ATTR_RGB_COLOR in kwargs:
             r, g, b = kwargs[ATTR_RGB_COLOR]
-            data["color"] = {"r": r, "g": g, "b": b, "w": 0}
+            data["color"] = {"r": r, "g": g, "b": b}
 
         if ATTR_RGBW_COLOR in kwargs:
             r, g, b, w = kwargs[ATTR_RGBW_COLOR]
             data["color"] = {"r": r, "g": g, "b": b, "w": w}
 
         if ATTR_EFFECT in kwargs:
-            # Find the mode key for the effect name
+            # Find the effect ID for the effect name
             effect_name = kwargs[ATTR_EFFECT]
-            mode = next((k for k, v in LED_EFFECTS.items() if v == effect_name), "solid")
-            data["mode"] = mode
+            effect_id = next((k for k, v in LED_EFFECTS.items() if v == effect_name), "SOLID")
+            data["effect_id"] = effect_id
 
-        # If no mode specified and turning on, use solid
-        if "mode" not in data and not self.is_on:
-            data["mode"] = "solid"
+        # If no effect specified and turning on, use SOLID
+        if "effect_id" not in data and not self.is_on:
+            data["effect_id"] = "SOLID"
 
-        # Ensure the light is marked as on
-        data["on"] = True
-
-        success = await self.coordinator.async_post_data(API_LEDS, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
+        response = await self.coordinator.async_post_data(endpoint, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            led_channels = self.coordinator.data.setdefault("led_channels", {})
+            led_channels[self._channel_index] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
         data = {"on": False}
-        success = await self.coordinator.async_post_data(API_LEDS, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
+        response = await self.coordinator.async_post_data(endpoint, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            led_channels = self.coordinator.data.setdefault("led_channels", {})
+            led_channels[self._channel_index] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockNixieTubes(KoiosClockLightEntity):
@@ -201,16 +215,22 @@ class KoiosClockNixieTubes(KoiosClockLightEntity):
             brightness_percent = int(kwargs[ATTR_BRIGHTNESS] * 100 / 255)
             data["brightness"] = brightness_percent
 
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the nixie tubes."""
         data = {"on": False}
-        success = await self.coordinator.async_post_data(API_NIXIE, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_NIXIE, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
 
 class KoiosClockFibonacciTheme(KoiosClockLightEntity):
@@ -270,13 +290,19 @@ class KoiosClockFibonacciTheme(KoiosClockLightEntity):
             )
             data["theme_id"] = theme_id
 
-        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_FIBONACCI, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["fibonacci"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the fibonacci display."""
         data = {"on": False}
-        success = await self.coordinator.async_post_data(API_FIBONACCI, data)
-        if success:
-            await self.coordinator.async_request_refresh()
+        response = await self.coordinator.async_post_data(API_FIBONACCI, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["fibonacci"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
