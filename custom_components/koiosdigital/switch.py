@@ -12,10 +12,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     API_NIXIE,
+    API_SYSTEM_CONFIG,
     DOMAIN,
     MODEL_NIXIE,
+    MODEL_MATRX,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
+from .device import get_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +40,10 @@ async def async_setup_entry(
             KoiosClockBlinkingDotsSwitch(coordinator),
         ])
 
+    # MATRX-specific switches
+    if coordinator.model == MODEL_MATRX:
+        entities.append(KoiosClockAutoBrightnessSwitch(coordinator))
+
     if entities:
         async_add_entities(entities, True)
 
@@ -56,13 +63,9 @@ class KoiosClockSwitchEntity(CoordinatorEntity, SwitchEntity):
         self.switch_type = switch_type
         self._attr_unique_id = f"{coordinator.host}_{coordinator.port}_{switch_type}"
         self._attr_name = f"Koios Clock {name}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{coordinator.host}_{coordinator.port}")},
-            "name": f"Koios Clock ({coordinator.host})",
-            "manufacturer": "Koios Digital",
-            "model": coordinator.model.title(),
-            "sw_version": coordinator.data.get("about", {}).get("version"),
-        }
+        self._attr_device_info = get_device_info(
+            coordinator, coordinator.host, coordinator.port, coordinator.model
+        )
 
 
 class KoiosClockMilitaryTimeSwitch(KoiosClockSwitchEntity):
@@ -135,5 +138,42 @@ class KoiosClockBlinkingDotsSwitch(KoiosClockSwitchEntity):
         if response:
             # Update the coordinator data with the response
             self.coordinator.data["nixie"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
+
+
+class KoiosClockAutoBrightnessSwitch(KoiosClockSwitchEntity):
+    """Switch to control auto brightness for MATRX devices."""
+
+    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
+        """Initialize the auto brightness switch."""
+        super().__init__(coordinator, "auto_brightness", "Auto Brightness")
+        self._attr_icon = "mdi:brightness-auto"
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if auto brightness is enabled."""
+        system_config = self.coordinator.data.get("system_config", {})
+        return system_config.get("auto_brightness_enabled", False)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on auto brightness."""
+        data = {"auto_brightness_enabled": True}
+        response = await self.coordinator.async_post_data(API_SYSTEM_CONFIG, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["system_config"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off auto brightness."""
+        data = {"auto_brightness_enabled": False}
+        response = await self.coordinator.async_post_data(API_SYSTEM_CONFIG, data)
+        
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["system_config"] = response
             # Trigger state update for all entities
             self.coordinator.async_set_updated_data(self.coordinator.data)

@@ -22,14 +22,17 @@ from .const import (
     API_LED_CHANNEL,
     API_NIXIE,
     API_FIBONACCI,
+    API_SYSTEM_CONFIG,
     DOMAIN,
     LED_EFFECTS,
     LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
+    MODEL_MATRX,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
+from .device import get_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +58,9 @@ async def async_setup_entry(
     elif coordinator.model == MODEL_WORDCLOCK:
         # Wordclock only has LED backlight
         entities.append(KoiosClockBacklight(coordinator))
+    elif coordinator.model == MODEL_MATRX:
+        # MATRX devices have a fallback light entity (screen control)
+        entities.append(KoiosClockMatrxScreen(coordinator))
 
     async_add_entities(entities, True)
 
@@ -72,13 +78,9 @@ class KoiosClockLightEntity(CoordinatorEntity, LightEntity):
         self.coordinator = coordinator
         self.light_type = light_type
         self._attr_unique_id = f"{coordinator.host}_{coordinator.port}_{light_type}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{coordinator.host}_{coordinator.port}")},
-            "name": f"Koios Clock ({coordinator.host})",
-            "manufacturer": "Koios Digital",
-            "model": coordinator.model.title(),
-            "sw_version": coordinator.data.get("about", {}).get("version"),
-        }
+        self._attr_device_info = get_device_info(
+            coordinator, coordinator.host, coordinator.port, coordinator.model
+        )
 
 
 class KoiosClockBacklight(KoiosClockLightEntity):
@@ -329,5 +331,52 @@ class KoiosClockFibonacciTheme(KoiosClockLightEntity):
         if response:
             # Update the coordinator data with the response
             self.coordinator.data["fibonacci"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
+
+
+class KoiosClockMatrxScreen(KoiosClockLightEntity):
+    """Representation of the MATRX screen as a light entity (fallback control)."""
+
+    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
+        """Initialize the MATRX screen light."""
+        super().__init__(coordinator, "matrx_screen")
+        self._attr_name = f"Koios MATRX Screen"
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+        self._attr_color_mode = ColorMode.BRIGHTNESS
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if the screen is enabled."""
+        system_config = self.coordinator.data.get("system_config", {})
+        return system_config.get("screen_enabled", True)
+
+    @property
+    def brightness(self) -> int | None:
+        """Return the brightness of the screen."""
+        system_config = self.coordinator.data.get("system_config", {})
+        return system_config.get("screen_brightness", 128)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the MATRX screen."""
+        data = {"screen_enabled": True}
+
+        if ATTR_BRIGHTNESS in kwargs:
+            data["screen_brightness"] = kwargs[ATTR_BRIGHTNESS]
+
+        response = await self.coordinator.async_post_data(API_SYSTEM_CONFIG, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["system_config"] = response
+            # Trigger state update for all entities
+            self.coordinator.async_set_updated_data(self.coordinator.data)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the MATRX screen."""
+        data = {"screen_enabled": False}
+        response = await self.coordinator.async_post_data(API_SYSTEM_CONFIG, data)
+        if response:
+            # Update the coordinator data with the response
+            self.coordinator.data["system_config"] = response
             # Trigger state update for all entities
             self.coordinator.async_set_updated_data(self.coordinator.data)

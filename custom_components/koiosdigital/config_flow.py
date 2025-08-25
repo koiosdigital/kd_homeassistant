@@ -44,8 +44,10 @@ class PlaceholderAuth:
             async with session.get(url, timeout=10) as response:
                 if response.status == 200:
                     data = await response.json()
+                    # Handle both 'subtype' (legacy clocks) and 'type' (MATRX devices)
+                    device_type = data.get("subtype") or data.get("type")
                     return {
-                        "subtype": data.get("subtype"),
+                        "subtype": device_type,
                         "version": data.get("version"),
                         "model": data.get("model"),
                     }
@@ -137,7 +139,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 session = async_get_clientsession(self.hass)
                 hub = PlaceholderAuth(host, port)
                 device_info = await hub.authenticate(session)
-                subtype = device_info.get("subtype")
+                # Handle both 'subtype' (legacy clocks) and 'type' (MATRX devices)
+                subtype = device_info.get("subtype") or device_info.get("type")
                 _LOGGER.debug("Got subtype from device API: %s", subtype)
             except Exception as err:
                 _LOGGER.warning("Failed to get device info during discovery: %s", err)

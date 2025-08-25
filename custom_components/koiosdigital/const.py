@@ -6,6 +6,7 @@ DOMAIN = "koiosdigital"
 MODEL_FIBONACCI = "fibonacci"
 MODEL_NIXIE = "nixie"
 MODEL_WORDCLOCK = "wordclock"
+MODEL_MATRX = "matrx"
 
 # API endpoints
 API_ABOUT = "/api/about"

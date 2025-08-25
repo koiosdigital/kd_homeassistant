@@ -17,12 +17,14 @@ from .const import (
     API_LED_EFFECTS,
     API_NIXIE,
     API_FIBONACCI,
+    API_SYSTEM_CONFIG,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
+    MODEL_MATRX,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -121,6 +123,12 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
                 
                 if led_channels:
                     data["led_channels"] = led_channels
+
+            elif self.model == MODEL_MATRX:
+                # MATRX devices use system config endpoint
+                system_config = await self._async_get_data(API_SYSTEM_CONFIG)
+                if system_config:
+                    data["system_config"] = system_config
 
             return data
 
