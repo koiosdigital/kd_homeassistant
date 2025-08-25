@@ -11,11 +11,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LED_CHANNEL,
     API_FIBONACCI,
     DOMAIN,
-    LED_EFFECTS,
-    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -35,11 +32,8 @@ async def async_setup_entry(
 
     entities = []
 
-    # LED effects available for Nixie and Wordclock models
-    if coordinator.model in [MODEL_NIXIE, MODEL_WORDCLOCK]:
-        entities.append(KoiosClockLEDEffectSelect(coordinator))
-
-    # Fibonacci-specific selects
+    # LED effects are now handled by light entities with effect support
+    # Only Fibonacci-specific selects remain
     if coordinator.model == MODEL_FIBONACCI:
         entities.append(KoiosClockFibonacciThemeSelect(coordinator))
 
@@ -70,40 +64,7 @@ class KoiosClockSelectEntity(CoordinatorEntity, SelectEntity):
             "sw_version": coordinator.data.get("about", {}).get("version"),
         }
 
-
-class KoiosClockLEDEffectSelect(KoiosClockSelectEntity):
-    """Select entity for LED effects."""
-
-    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
-        """Initialize the LED effect select."""
-        super().__init__(coordinator, "led_effect", "LED Effect")
-        self._attr_icon = "mdi:lightbulb"
-        self._attr_options = list(LED_EFFECTS.values())
-        self._channel_index = LED_CHANNEL_BACKLIGHT
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the current LED effect."""
-        led_channels = self.coordinator.data.get("led_channels", {})
-        channel_data = led_channels.get(self._channel_index, {})
-        effect_id = channel_data.get("effect_id", "SOLID")
-        return LED_EFFECTS.get(effect_id, effect_id)
-
-    async def async_select_option(self, option: str) -> None:
-        """Change the LED effect."""
-        # Find the effect ID for the effect name
-        effect_id = next((k for k, v in LED_EFFECTS.items() if v == option), "SOLID")
-        data = {"effect_id": effect_id}
-        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
-        response = await self.coordinator.async_post_data(endpoint, data)
-        
-        if response:
-            # Update the coordinator data with the response
-            led_channels = self.coordinator.data.setdefault("led_channels", {})
-            led_channels[self._channel_index] = response
-            # Trigger state update for all entities
-            self.coordinator.async_set_updated_data(self.coordinator.data)
-
+# LED effect select entity removed - effects are now handled by light entities
 
 class KoiosClockFibonacciThemeSelect(KoiosClockSelectEntity):
     """Select entity for Fibonacci themes."""

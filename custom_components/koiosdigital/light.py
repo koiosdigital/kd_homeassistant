@@ -126,12 +126,26 @@ class KoiosClockBacklight(KoiosClockLightEntity):
         led_channels = self.coordinator.data.get("led_channels", {})
         channel_data = led_channels.get(self._channel_index, {})
         effect_id = channel_data.get("effect_id", "SOLID")
+        
+        # Try to find display name from API effects first
+        led_effects_data = self.coordinator.data.get("led_effects", [])
+        for effect in led_effects_data:
+            if effect.get("id") == effect_id:
+                return effect.get("name", effect_id)
+        
+        # Fallback to hardcoded mapping
         return LED_EFFECTS.get(effect_id, effect_id)
 
     @property
     def effect_list(self) -> list[str]:
         """Return the list of supported effects."""
-        return list(LED_EFFECTS.values())
+        led_effects_data = self.coordinator.data.get("led_effects", [])
+        if led_effects_data:
+            # Use effects from API
+            return [effect.get("name", effect.get("id", "Unknown")) for effect in led_effects_data]
+        else:
+            # Fallback to hardcoded list
+            return list(LED_EFFECTS.values())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
@@ -151,7 +165,18 @@ class KoiosClockBacklight(KoiosClockLightEntity):
         if ATTR_EFFECT in kwargs:
             # Find the effect ID for the effect name
             effect_name = kwargs[ATTR_EFFECT]
-            effect_id = next((k for k, v in LED_EFFECTS.items() if v == effect_name), "SOLID")
+            led_effects_data = self.coordinator.data.get("led_effects", [])
+            effect_id = "SOLID"  # Default fallback
+            
+            # Try to find from API effects first
+            for effect in led_effects_data:
+                if effect.get("name") == effect_name:
+                    effect_id = effect.get("id", "SOLID")
+                    break
+            else:
+                # Fallback to hardcoded mapping
+                effect_id = next((k for k, v in LED_EFFECTS.items() if v == effect_name), "SOLID")
+            
             data["effect_id"] = effect_id
 
         # If no effect specified and turning on, use SOLID

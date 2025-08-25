@@ -11,11 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    API_LED_CHANNEL,
-    API_NIXIE,
-    API_FIBONACCI,
     DOMAIN,
-    LED_CHANNEL_BACKLIGHT,
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
@@ -35,15 +31,8 @@ async def async_setup_entry(
 
     entities = []
 
-    # LED brightness for Nixie and Wordclock models
-    if coordinator.model in [MODEL_NIXIE, MODEL_WORDCLOCK]:
-        entities.append(KoiosClockLEDBrightnessNumber(coordinator))
-
-    # Model-specific number entities
-    if coordinator.model == MODEL_NIXIE:
-        entities.append(KoiosClockNixieBrightnessNumber(coordinator))
-    elif coordinator.model == MODEL_FIBONACCI:
-        entities.append(KoiosClockFibonacciBrightnessNumber(coordinator))
+    # No brightness number entities - brightness is now handled by light entities
+    # Could add other number entities here in the future (e.g., LED speed, etc.)
 
     if entities:
         async_add_entities(entities, True)
@@ -73,96 +62,4 @@ class KoiosClockNumberEntity(CoordinatorEntity, NumberEntity):
             "sw_version": coordinator.data.get("about", {}).get("version"),
         }
 
-
-class KoiosClockLEDBrightnessNumber(KoiosClockNumberEntity):
-    """Number entity for LED brightness."""
-
-    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
-        """Initialize the LED brightness number."""
-        super().__init__(coordinator, "led_brightness", "LED Brightness")
-        self._attr_icon = "mdi:brightness-6"
-        self._attr_native_min_value = 0
-        self._attr_native_max_value = 255
-        self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = None
-        self._channel_index = LED_CHANNEL_BACKLIGHT
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the current LED brightness."""
-        led_channels = self.coordinator.data.get("led_channels", {})
-        channel_data = led_channels.get(self._channel_index, {})
-        return channel_data.get("brightness", 255)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set the LED brightness."""
-        data = {"brightness": int(value)}
-        endpoint = f"{API_LED_CHANNEL}/{self._channel_index}"
-        response = await self.coordinator.async_post_data(endpoint, data)
-        
-        if response:
-            # Update the coordinator data with the response
-            led_channels = self.coordinator.data.setdefault("led_channels", {})
-            led_channels[self._channel_index] = response
-            # Trigger state update for all entities
-            self.coordinator.async_set_updated_data(self.coordinator.data)
-
-
-class KoiosClockNixieBrightnessNumber(KoiosClockNumberEntity):
-    """Number entity for Nixie tube brightness."""
-
-    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
-        """Initialize the Nixie brightness number."""
-        super().__init__(coordinator, "nixie_brightness", "Nixie Brightness")
-        self._attr_icon = "mdi:brightness-4"
-        self._attr_native_min_value = 0
-        self._attr_native_max_value = 100
-        self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = "%"
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the current Nixie brightness."""
-        nixie_data = self.coordinator.data.get("nixie", {})
-        return nixie_data.get("brightness", 80)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set the Nixie brightness."""
-        data = {"brightness": int(value)}
-        response = await self.coordinator.async_post_data(API_NIXIE, data)
-        
-        if response:
-            # Update the coordinator data with the response
-            self.coordinator.data["nixie"] = response
-            # Trigger state update for all entities
-            self.coordinator.async_set_updated_data(self.coordinator.data)
-
-
-class KoiosClockFibonacciBrightnessNumber(KoiosClockNumberEntity):
-    """Number entity for Fibonacci display brightness."""
-
-    def __init__(self, coordinator: KoiosClockDataUpdateCoordinator) -> None:
-        """Initialize the Fibonacci brightness number."""
-        super().__init__(coordinator, "fibonacci_brightness", "Fibonacci Brightness")
-        self._attr_icon = "mdi:brightness-5"
-        self._attr_native_min_value = 0
-        self._attr_native_max_value = 255
-        self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = None
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the current Fibonacci brightness."""
-        fib_data = self.coordinator.data.get("fibonacci", {})
-        return fib_data.get("brightness", 255)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set the Fibonacci brightness."""
-        data = {"brightness": int(value)}
-        response = await self.coordinator.async_post_data(API_FIBONACCI, data)
-        
-        if response:
-            # Update the coordinator data with the response
-            self.coordinator.data["fibonacci"] = response
-            # Trigger state update for all entities
-            self.coordinator.async_set_updated_data(self.coordinator.data)
+# Brightness number entities removed - brightness is now handled by light entities

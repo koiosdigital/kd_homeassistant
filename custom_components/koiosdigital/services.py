@@ -64,7 +64,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if not coordinator:
                 continue
 
-            data = {"effect_id": effect}
+            # Find the effect ID for the effect name using API data or fallback
+            led_effects_data = coordinator.data.get("led_effects", [])
+            effect_id = "SOLID"  # Default fallback
+            
+            # Try to find from API effects first
+            for api_effect in led_effects_data:
+                if api_effect.get("name") == effect:
+                    effect_id = api_effect.get("id", "SOLID")
+                    break
+
+            data = {"effect_id": effect_id}
             if brightness is not None:
                 data["brightness"] = brightness
             if color is not None:

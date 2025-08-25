@@ -14,6 +14,7 @@ from .const import (
     API_ABOUT,
     API_LED_CONFIG,
     API_LED_CHANNEL,
+    API_LED_EFFECTS,
     API_NIXIE,
     API_FIBONACCI,
     DEFAULT_UPDATE_INTERVAL,
@@ -75,8 +76,13 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
                 if led_config:
                     data["led_config"] = led_config
                     
+                # Get available LED effects
+                led_effects = await self._async_get_data(API_LED_EFFECTS)
+                if led_effects:
+                    data["led_effects"] = led_effects
+                    
                 # Get state for each LED channel
-                channels = led_config.get("channels", [])
+                channels = led_config.get("channels", []) if led_config else []
                 led_channels = {}
                 for channel in channels:
                     channel_idx = channel.get("index")
@@ -98,8 +104,13 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
                 if led_config:
                     data["led_config"] = led_config
                     
+                # Get available LED effects
+                led_effects = await self._async_get_data(API_LED_EFFECTS)
+                if led_effects:
+                    data["led_effects"] = led_effects
+                    
                 # Get state for each LED channel
-                channels = led_config.get("channels", [])
+                channels = led_config.get("channels", []) if led_config else []
                 led_channels = {}
                 for channel in channels:
                     channel_idx = channel.get("index")
