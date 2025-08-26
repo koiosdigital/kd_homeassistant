@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, MODEL_MATRX
+from .const import DOMAIN, MODEL_MATRX, MODEL_TRANQUIL
 
 
 def get_device_info(
@@ -19,6 +19,8 @@ def get_device_info(
     device_name = "Koios Clock"
     if model == MODEL_MATRX:
         device_name = "Koios MATRX"
+    elif model == MODEL_TRANQUIL:
+        device_name = "Koios Tranquil"
     
     return DeviceInfo(
         identifiers={(DOMAIN, f"{host}_{port}")},

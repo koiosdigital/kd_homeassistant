@@ -25,6 +25,7 @@ from .const import (
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
     MODEL_MATRX,
+    MODEL_TRANQUIL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -129,6 +130,22 @@ class KoiosClockDataUpdateCoordinator(DataUpdateCoordinator):
                 system_config = await self._async_get_data(API_SYSTEM_CONFIG)
                 if system_config:
                     data["system_config"] = system_config
+
+            elif self.model == MODEL_TRANQUIL:
+                # Tranquil only uses LED channel 0 (similar to wordclock but only channel 0)
+                led_config = await self._async_get_data(API_LED_CONFIG)
+                if led_config:
+                    data["led_config"] = led_config
+                    
+                # Get available LED effects
+                led_effects = await self._async_get_data(API_LED_EFFECTS)
+                if led_effects:
+                    data["led_effects"] = led_effects
+                    
+                # Get state for LED channel 0 only
+                channel_data = await self._async_get_data(f"{API_LED_CHANNEL}/{LED_CHANNEL_BACKLIGHT}")
+                if channel_data:
+                    data["led_channels"] = {LED_CHANNEL_BACKLIGHT: channel_data}
 
             return data
 

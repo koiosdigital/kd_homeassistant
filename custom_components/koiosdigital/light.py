@@ -30,6 +30,7 @@ from .const import (
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
     MODEL_MATRX,
+    MODEL_TRANQUIL,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
 from .device import get_device_info
@@ -61,6 +62,9 @@ async def async_setup_entry(
     elif coordinator.model == MODEL_MATRX:
         # MATRX devices have a fallback light entity (screen control)
         entities.append(KoiosClockMatrxScreen(coordinator))
+    elif coordinator.model == MODEL_TRANQUIL:
+        # Tranquil only has LED channel 0 control (similar to wordclock but only channel 0)
+        entities.append(KoiosClockBacklight(coordinator))
 
     async_add_entities(entities, True)
 

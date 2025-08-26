@@ -16,6 +16,7 @@ from .const import (
     DOMAIN,
     MODEL_NIXIE,
     MODEL_MATRX,
+    MODEL_TRANQUIL,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
 from .device import get_device_info

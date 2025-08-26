@@ -7,6 +7,7 @@ MODEL_FIBONACCI = "fibonacci"
 MODEL_NIXIE = "nixie"
 MODEL_WORDCLOCK = "wordclock"
 MODEL_MATRX = "matrx"
+MODEL_TRANQUIL = "tranquil"
 
 # API endpoints
 API_ABOUT = "/api/about"

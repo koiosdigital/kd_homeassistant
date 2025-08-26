@@ -15,6 +15,7 @@ from .const import (
     MODEL_FIBONACCI,
     MODEL_NIXIE,
     MODEL_WORDCLOCK,
+    MODEL_TRANQUIL,
 )
 from .coordinator import KoiosClockDataUpdateCoordinator
 
